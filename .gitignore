@@ -1,0 +1,6 @@
+*.code-workspace
+*.ipynb_checkpoints
+*__pycache__
+.vscode
+.mypy_cache
+/assets/raw/
