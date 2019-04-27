@@ -1,6 +1,9 @@
 import pandas as pd
 
-from modeling import model
+from keras.models import Sequential
+from keras.layers import Dense, Activation
+from keras.optimizers import Adam
+
 from preprocessing import preprocess_data
 
 cols_to_fe = ['EngineVersion', 'AppVersion', 'AvSigVersion', 'Census_OSVersion']
@@ -81,7 +84,14 @@ dtype = {
 df = pd.read_csv('assets/raw/train.csv', index_col=0, nrows=100000, dtype=dtype)  # add nrows=n value for smaller sample size.
 X_train, Y_train, X_test, Y_test = preprocess_data(df, cols_to_fe, cols_to_ohe)
 
-model = model(df)
+model = Sequential([
+    Dense(32, input_dim=len(df.columns) - 1),
+    Activation('relu'),
+    Dense(10),
+    Activation('softmax')
+])
+
+model.compile(loss='binary_crossentropy', optimizer=Adam(lr=0.01), metrics=['accuracy'])
 
 model.fit(X_train, Y_train, epochs=5, batch_size=32)  # backprop arguments
 
