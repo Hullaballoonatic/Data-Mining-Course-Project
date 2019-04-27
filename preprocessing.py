@@ -1,125 +1,74 @@
-import math
-import pandas as pd
-import gc
+from math import isnan
+from numpy import where
 
 from sklearn.model_selection import train_test_split
 
+
 def is_nan(x):
-        if isinstance(x, float):
-            if math.isnan(x):
-                return True
+    if isinstance(x, float):
+        if isnan(x):
+            return True
 
-        return False
+    return False
 
-def frequency_encode(dataframe, column, verbose=False):
-    d = dataframe[column].value_counts(dropna=False)
-    n = column + "_FE"
-    dataframe[n] = dataframe[column].map(d)/d.max()
 
-    if (verbose):
-        print(f'Frequency encoded {column}')
+def frequency_encode(df, cols: [str]):
+    for col in cols:
+        d = df[col].value_counts(dropna=False)
+        df[f'{col}_FE'] = df[col].map(d)/d.max()
 
-    return [n]
+        print(f'Frequency encoded {col}')
+
+    df.drop(columns=cols, inplace=True)
+
 
 '''
-Encode categorical attributes that comprise more than filter percent of the total data
-and have a significance greater than the given z_value.
+Statistical One-Hot Encoding will disregard attributes with more categories than make sense to.
+It detects this using a trick from statics in which you assume a random sample, and upon each value test the hypothesis:
+    H0: Prob(p=1) == m
+    HA: Prob(p=1) != m
+where p is the observed target_col rate given value is present, and m is a value between 0 and 1.
+
+Then Central Limit Theory tells us that:
+    z == (p-m)/std_dev(p) == 2*(p-m)*(n//2)
+where n is #occurrences of value
+
+which is transformed below to determine whether or not to translate.
 '''
-def one_hot_encode(dataframe, column, filter, z_value, target_column='HasDetections', m=0.5, verbose=False):
-    cv = dataframe[column].value_counts(dropna=False)
-    cvd = cv.to_dict()
-    vals = len(cv)
-    th = filter * len(dataframe)
-    sd = z_value * 0.5 / math.sqrt(th)
 
-    n = []
-    ct = 0
-    d = {}
 
-    for x in cv.index:
-        try:
-            if cv[x] < th:
+def one_hot_encode(df, cols: [str], target_col: str = 'HasDetections',
+                   filter: float = 0.005, z: float = 5, m: float = 0.5):
+    for col in cols:
+        value_counts = df[col].value_counts(dropna=False)
+
+        for x, n in value_counts.items():
+            if n < filter * len(df):
                 break
-            
-            sd = z_value * 0.5 / math.sqrt(cv[x])
-        except:
-            if cvd[x] < th:
-                break
+            entriesWithValue = df[col].isna() if is_nan(x) else df[col] == x
 
-            sd = z_value * 0.5 / math.sqrt(cvd[x])
+            p = df[entriesWithValue][target_col].mean()
 
-        if is_nan(x):
-            r = dataframe[dataframe[column].isna()][target_column].mean()
-        else:
-            r = dataframe[dataframe[column] == x][target_column].mean()
+            if abs(p - m) > (z / n//2):
+                df[f'{col}_BE_{x}'] = entriesWithValue.astype('int8')
 
-        if abs(r - m) > sd:
-            nm = column + '_BE_' + str(x)
+        print(f'OHEncoded {col} and created {len(value_counts)} flags')
+    df.drop(columns=cols, inplace=True)
 
-            if is_nan(x):
-                dataframe[nm] = (dataframe[column].isna()).astype('int8')
-            else:
-                dataframe[nm] = (dataframe[column] == x).astype('int8')
-            
-            n.append(nm)
-            d[x] = 1
-        
-        ct += 1
-
-        if (ct + 1) >= vals:
-            break
-    
-    if (verbose):
-        print(f'OHE encoded {column} and created {len(d)} booleans')
-
-    return [n, d]
 
 '''
-Function to preprocess data. Loads data from csv_path, uses test_size precentage of the data
+Function to preprocess dataframe provided, uses test_size precentage of the data
 in the train_test_split result, frequency encodes cols_to_fe, one-hot encodes cols_to_ohe,
 passes ohe_filter, ohe_zvalue, and ohe_mval to the one_hot_encode function, uses target_column
-as the label, uses sample_size as the number of records to use from the loaded csv, and uses the
-verbose boolean to determine whether or not to print verbose output.
+as the label
 '''
-def preprocess_data(csv_path, test_size, cols_to_fe, cols_to_ohe, ohe_filter, ohe_zvalue, ohe_mval=0.5,
-    target_column='HasDetections', sample_size=-1, verbose=False):
 
-    dtypes = {}
 
-    for x in cols_to_ohe + cols_to_fe:
-        dtypes[x] = 'category'
-    
-    dtypes['MachineIdentifier'] = 'str'
-    dtypes['HasDetections'] = 'int8'
+def preprocess_data(df, cols_to_fe: [str], cols_to_ohe: [str],
+                    test_size: float = 0.3,
+                    ohe_filter: float = 0.005, ohe_z: float = 5, ohe_m: float = 0.5,
+                    target_col: str = 'HasDetections'):
+    frequency_encode(df=df, cols=cols_to_fe)
+    one_hot_encode(df=df, cols=cols_to_ohe, target_col=target_col, filter=ohe_filter, z=ohe_z, m=ohe_m)
 
-    df_train = pd.read_csv(csv_path, usecols=dtypes.keys(), dtype=dtypes)
-
-    if (verbose):
-        print(f'Loaded {len(df_train)} rows from {csv_path}')
-
-    if (sample_size != -1):
-        df_train = df_train.sample(sample_size)
-
-        if (verbose):
-            print(f'Sample size of {sample_size} rows being used from {csv_path}')
-
-    x = gc.collect()
-
-    cols = []
-    dd = []
-
-    for x in cols_to_fe:
-        cols += frequency_encode(df_train, x, verbose)
-    
-    for x in cols_to_ohe:
-        tmp = one_hot_encode(df_train, x, ohe_filter, ohe_zvalue, target_column, ohe_mval, verbose)
-        cols += tmp[0]
-        dd.append(tmp[1])
-    
-    for x in cols_to_fe + cols_to_ohe:
-        del df_train[x]
-    
-    if (verbose):
-        print(f'Removed original {len(cols_to_fe + cols_to_ohe)} variables')
-
-    return train_test_split(df_train[cols], df_train[target_column], test_size=test_size)
+    return train_test_split(df.drop(columns=[target_col]), df[target_col], test_size=test_size)
