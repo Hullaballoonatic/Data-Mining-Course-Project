@@ -3,12 +3,13 @@ from math import isnan
 from numpy import where
 import pandas as pd
 
-cols_to_fe = ['EngineVersion', 'AppVersion', 'AvSigVersion', 'Census_OSVersion']
+cols_to_fe = ['EngineVersion', 'AppVersion', 'AvSigVersion', 'Census_OSVersion', 'OsVer']
 
 cols_to_ohe = [
     'RtpStateBitfield', 'DefaultBrowsersIdentifier',
     'AVProductStatesIdentifier', 'AVProductsInstalled', 'AVProductsEnabled',
     'CountryIdentifier', 'CityIdentifier', 'GeoNameIdentifier',
+    'OrganizationIdentifier',
     'LocaleEnglishNameIdentifier', 'Processor', 'OsBuild', 'OsSuite',
     'SmartScreen', 'Census_MDC2FormFactor', 'Census_OEMNameIdentifier',
     'Census_ProcessorCoreCount', 'Census_ProcessorModelIdentifier',
@@ -21,13 +22,22 @@ cols_to_ohe = [
     'Census_InternalBatteryNumberOfCharges', 'Census_OSEdition',
     'Census_OSInstallLanguageIdentifier', 'Census_GenuineStateName',
     'Census_ActivationChannel', 'Census_FirmwareManufacturerIdentifier',
-    'Census_IsTouchEnabled', 'Census_IsPenCapable',
-    'Census_IsAlwaysOnAlwaysConnectedCapable', 'Wdft_IsGamer',
-    'Wdft_RegionIdentifier'
+    'Census_IsTouchEnabled', 'Census_IsPenCapable', 'IeVerIdentifier',
+    'Census_IsAlwaysOnAlwaysConnectedCapable', 'Wdft_IsGamer', 'SMode',
+    'Wdft_RegionIdentifier', 'Census_ProcessorClass', 'Census_IsFlightingInternal',
+    'Census_ThresholdOptIn', 'Census_IsWIMBootEnabled', 'PuaMode',
+    'Census_FirmwareVersionIdentifier', 'Census_ProcessorManufacturerIdentifier',
+    'Census_OEMModelIdentifier', 'Census_SystemVolumeTotalCapacity', 'ProductName',
+    'Platform', 'OsPlatformSubRelease', 'OsBuildLab', 'SkuEdition',
+    'Census_OSArchitecture', 'Census_OSBranch', 'Census_DeviceFamily',
+    'Census_OSSkuName', 'Census_OSBuildRevision', 'Census_OSInstallTypeName',
+    'Census_OSUILocaleIdentifier', 'Census_OSWUAutoUpdateOptionsName',
+    'Census_FlightRing', 'Census_OSBuildNumber'
 ]
 
 dtype = {
     'MachineIdentifier': 'object',
+    'ProductName': 'category',
     'EngineVersion': 'category',
     'AppVersion': 'category',
     'AvSigVersion': 'category',
@@ -42,9 +52,15 @@ dtype = {
     'CityIdentifier': 'category',
     'GeoNameIdentifier': 'category',
     'LocaleEnglishNameIdentifier': 'category',
+    'OrganizationIdentifier': 'category',
     'Processor': 'category',
     'OsBuild': 'category',
+    'OsBuildLab': 'category',
     'OsSuite': 'category',
+    'OsVer': 'category',
+    'OsPlatformSubRelease': 'category',
+    'SMode': 'category',
+    'Platform': 'category',
     'SmartScreen': 'category',
     'Census_MDC2FormFactor': 'category',
     'Census_OEMNameIdentifier': 'category',
@@ -68,14 +84,35 @@ dtype = {
     'Census_FirmwareManufacturerIdentifier': 'category',
     'Census_IsTouchEnabled': 'int8',
     'Census_IsPenCapable': 'int8',
+    'Census_ProcessorClass': 'category',
+    'Census_IsFlightingInternal': 'category',
+    'Census_ThresholdOptIn': 'category',
+    'IeVerIdentifier': 'category',
     'Census_IsPortableOperatingSystem': 'int8',
     'Census_IsSecureBootEnabled': 'int8',
+    'Census_IsWIMBootEnabled': 'category',
     'Census_IsAlwaysOnAlwaysConnectedCapable': 'category',
+    'Census_FirmwareVersionIdentifier': 'category',
+    'Census_ProcessorManufacturerIdentifier': 'category',
     'Wdft_IsGamer': 'category',
+    'PuaMode': 'category',
     'Wdft_RegionIdentifier': 'category',
+    'Census_SystemVolumeTotalCapacity': 'category',
+    'Census_OEMModelIdentifier': 'category',
     'HasTpm': 'int8',
     'IsBeta': 'int8',
-    'HasDetections': 'int8'
+    'HasDetections': 'int8',
+    'SkuEdition': 'category',
+    'Census_DeviceFamily': 'category',
+    'Census_OSArchitecture': 'category',
+    'Census_OSBranch': 'category',
+    'Census_OSBuildNumber': 'category',
+    'Census_OSBuildRevision': 'category',
+    'Census_OSSkuName': 'category',
+    'Census_OSInstallTypeName': 'category',
+    'Census_OSUILocaleIdentifier': 'category',
+    'Census_OSWUAutoUpdateOptionsName': 'category',
+    'Census_FlightRing': 'category'
 }
 
 processed_csv_fp = 'assets/preprocessed/data.csv'
@@ -149,9 +186,12 @@ def get_data():
     try:
         df = pd.read_csv(processed_csv_fp, index_col=0)
     except FileNotFoundError:
+        print('reading raw csv')
         df = pd.read_csv(raw_csv_fp, index_col=0, nrows=100000, dtype=dtype)
+        print('preprocessing')
         frequency_encode(df)
         one_hot_encode(df)
-        df.to_csv(processed_csv_fp)
+        print('writing csv')
+        df.to_csv(processed_csv_fp, float_format='%.4f')
 
     return train_test_split(df.drop(columns=[label]), df[label], test_size=test_size)
