@@ -16,7 +16,7 @@ model = Sequential([
     Dense(output_dim=1, activation='softmax'),  # output layer
 ])
 
-model.compile(loss='mean_squared_error', optimizer=SGD(lr=1e-6, decay=1e-2), metrics=['accuracy'])
+model.compile(loss='binary_crossentropy', optimizer=Adam(lr=1e-6, decay=1e-2), metrics=['accuracy'])
 # loss is our cost function
 
 model.fit(x_train, y_train, epochs=100, batch_size=16, callbacks=[EarlyStopping(monitor='loss', patience=0)])  # backprop arguments
