@@ -17,7 +17,7 @@ def frequency_encode(df, cols: [str]):
         d = df[col].value_counts(dropna=False)
         df[f'{col}_FE'] = df[col].map(d)/d.max()
 
-        print(f'Frequency encoded {col}')
+        # print(f'Frequency encoded {col}')
 
     df.drop(columns=cols, inplace=True)
 
@@ -52,7 +52,7 @@ def one_hot_encode(df, cols: [str], target_col: str = 'HasDetections',
             if abs(p - m) > (z / n//2):
                 df[f'{col}_BE_{x}'] = entriesWithValue.astype('int8')
 
-        print(f'OHEncoded {col} and created {len(value_counts)} flags')
+        # print(f'OHEncoded {col} and created {len(value_counts)} flags')
     df.drop(columns=cols, inplace=True)
 
 
