@@ -186,12 +186,9 @@ def get_data():
     try:
         df = pd.read_csv(processed_csv_fp, index_col=0)
     except FileNotFoundError:
-        print('reading raw csv')
         df = pd.read_csv(raw_csv_fp, index_col=0, nrows=100000, dtype=dtype)
-        print('preprocessing')
         frequency_encode(df)
         one_hot_encode(df)
-        print('writing csv')
         df.to_csv(processed_csv_fp, float_format='%.4f')
 
     return train_test_split(df.drop(columns=[label]), df[label], test_size=test_size)
