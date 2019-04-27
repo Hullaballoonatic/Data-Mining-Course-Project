@@ -5,8 +5,6 @@ from keras.callbacks import EarlyStopping
 
 from data import get_data
 
-from sklearn.utils import compute_class_weight
-
 x_train, x_test, y_train, y_test = get_data()
 
 model = Sequential([
@@ -17,7 +15,6 @@ model = Sequential([
 ])
 
 model.compile(loss='binary_crossentropy', optimizer=Adam(lr=1e-6, decay=1e-2), metrics=['accuracy'])
-# loss is our cost function
 
 model.fit(x_train, y_train, epochs=100, batch_size=16, callbacks=[EarlyStopping(monitor='loss', patience=0)])  # backprop arguments
 
