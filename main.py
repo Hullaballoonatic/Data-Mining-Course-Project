@@ -1,11 +1,6 @@
 import pandas as pd
-import numpy as np
 
-from keras import callbacks
-from keras.models import Sequential
-from keras.layers import Dense, Dropout, BatchNormalization, Activation
-from keras.callbacks import LearningRateScheduler
-from keras.optimizers import Adam
+from modeling import model
 from preprocessing import preprocess_data
 
 cols_to_fe = ['EngineVersion', 'AppVersion', 'AvSigVersion', 'Census_OSVersion']
@@ -83,5 +78,13 @@ dtype = {
     'HasDetections': 'int8'
 }
 
-df = pd.read_csv('assets/raw/train.csv', index_col=0, dtype=dtype)  # add nrows=n value for smaller sample size.
-train, train_label, test, test_label = preprocess_data(df, cols_to_fe, cols_to_ohe)
+df = pd.read_csv('assets/raw/train.csv', index_col=0, nrows=100000, dtype=dtype)  # add nrows=n value for smaller sample size.
+X_train, Y_train, X_test, Y_test = preprocess_data(df, cols_to_fe, cols_to_ohe)
+
+model = model(df)
+
+model.fit(X_train, Y_train, epochs=5, batch_size=32)  # backprop arguments
+
+loss_and_metrics = model.evaluate(X_test, Y_test, batch_size=32)
+
+print(loss_and_metrics)
