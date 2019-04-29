@@ -167,26 +167,18 @@ def one_hot_encode(df, cols: [str] = cols_to_ohe, target_col: str = label,
 
             p = df[entriesWithValue][target_col].mean()
 
-            if abs(p - m) > (z / n//2):
+            if 2 * abs(p - m) > (z / n//2):
                 df[f'{col}_BE_{x}'] = entriesWithValue.astype('int8')
 
         # print(f'OHEncoded {col} and created {len(value_counts)} flags')
     df.drop(columns=cols, inplace=True)
 
 
-'''
-Function to preprocess dataframe provided, uses test_size precentage of the data
-in the train_test_split result, frequency encodes cols_to_fe, one-hot encodes cols_to_ohe,
-passes ohe_filter, ohe_zvalue, and ohe_mval to the one_hot_encode function, uses target_column
-as the label
-'''
-
-
 def get_data():
     try:
         df = pd.read_csv(processed_csv_fp, index_col=0)
     except FileNotFoundError:
-        df = pd.read_csv(raw_csv_fp, index_col=0, nrows=100000, dtype=dtype)
+        df = pd.read_csv(raw_csv_fp, index_col=0, nrows=2000000, dtype=dtype)
         frequency_encode(df)
         one_hot_encode(df)
         df.to_csv(processed_csv_fp, float_format='%.4f')
